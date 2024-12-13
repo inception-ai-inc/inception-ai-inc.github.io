@@ -134,7 +134,7 @@
             text-align: center;
             padding: 10px;
             background-color: rgba(0, 0, 0, 0.7);
-            color: var(--text-primary);
+            color: var(--text-secondary);
             font-size: 16px;
             position: static;
             bottom: 0;
@@ -229,6 +229,7 @@
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
         }
+
         function getPositions() {
             const width = canvas.width / (window.devicePixelRatio || 1);
             const height = canvas.height / (window.devicePixelRatio || 1);
@@ -236,12 +237,11 @@
             const isShortScreen = height < 600;
             
             if (isShortScreen) {
-                // Extra compact layout for very short screens
                 return {
-                    titleY: height * 0.12,                // Title at the very top
-                    typewriterY: height * 0.25,           // Typewriter text close to top
-                    diffusionY: height * 0.38,            // Diffusion text in middle
-                    finalTextY: height * 0.51,            // Final diffusion text lower
+                    titleY: height * 0.12,
+                    typewriterY: height * 0.25,
+                    diffusionY: height * 0.38,
+                    finalTextY: height * 0.51,
                     leftX: isVerticalLayout ? width / 2 : width * 0.25,
                     rightX: isVerticalLayout ? width / 2 : width * 0.75,
                     isVerticalLayout
@@ -250,8 +250,9 @@
                 return {
                     titleY: height * 0.15,
                     typewriterY: height * 0.3,
-                    diffusionY: height * 0.45,
-                    finalTextY: height * 0.6,
+                    finalTypewriterY: height * 0.43,
+                    diffusionY: height * 0.53,       
+                    finalTextY: height * 0.68,       
                     leftX: width / 2,
                     rightX: width / 2,
                     isVerticalLayout
@@ -377,13 +378,31 @@
             // Draw typewriter text
             ctx.font = `300 ${textSize}px 'JetBrains Mono'`;
             ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+            
+            // Get full typewriter text and determine where the last line begins
             const typewriterLines = getTypewriterLines(currentTypewriterText);
-            drawMultilineText(
-                typewriterLines, 
-                positions.leftX, 
-                positions.isVerticalLayout ? positions.typewriterY : positions.textY, 
-                textSize
-            );
+            const initialLinesLength = typewriterText.slice(0, -1).join('').length;
+            
+            // Draw each line
+            const lineHeight = textSize * 1.5;
+            let startY = positions.isVerticalLayout ? positions.typewriterY : positions.textY;
+            
+            typewriterLines.forEach((line, i, arr) => {
+                // Check if this line contains any of the last line's text
+                const isPartOfLastLine = currentTypewriterText.length > initialLinesLength;
+                const isLastLine = i === typewriterText.length - 1;
+                
+                // Use appropriate final Y position based on layout
+                let finalY;
+                if (positions.isVerticalLayout) {
+                    finalY = positions.finalTypewriterY || (positions.finalTextY + lineHeight * 2);
+                } else {
+                    finalY = positions.finalTextY;
+                }
+                
+                const lineY = (isLastLine && isPartOfLastLine) ? finalY : startY + (i * lineHeight);
+                ctx.fillText(line, positions.leftX, lineY);
+            });
             
             // Draw initial diffusion text
             if (phase === 'initial-diffusion' || phase === 'final-diffusion' || phase === 'achievements') {
